@@ -1,0 +1,39 @@
+{
+  "$schema": "https://raw.githubusercontent.com/vicinaehq/vicinae/refs/heads/main/extra/schemas/extension.json",
+  "name": "kde-windows-using-kdotool",
+  "title": "KDE Windows (using kdotool)",
+  "description": "Uses kdotool to list open windows for KDE, since KDE doesn't implement wlroots",
+  "categories": [],
+  "license": "MIT",
+  "author": "spencerwi",
+  "contributors": [],
+  "pastContributors": [],
+  "icon": "extension_icon.png",
+  "commands": [
+    {
+      "name": "kde-windows",
+      "title": "KDE Windows",
+      "subtitle": "List KDE open windows",
+      "description": "Uses kdotool to list open windows for KDE, since KDE doesn't implement wlroots",
+      "mode": "view"
+    }
+  ],
+  "preferences": [],
+  "scripts": {
+    "build": "vici build",
+    "dev": "vici develop",
+    "format": "biome format --write src",
+    "lint": "vici lint"
+  },
+  "dependencies": {
+    "@vicinae/api": "^0.16.6",
+	"chalk": "^4"
+  },
+  "overrides": {
+	"chalk": "^4"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.2",
+    "typescript": "^5.9.2"
+  }
+}
