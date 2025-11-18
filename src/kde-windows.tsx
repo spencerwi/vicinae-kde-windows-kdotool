@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
-import { Action, ActionPanel, Icon, List } from "@vicinae/api";
+import { useState, useMemo, useEffect } from "react";
+import { Action, ActionPanel, Icon, List, closeMainWindow } from "@vicinae/api";
 const { spawnSync } = require('child_process');
+import freedesktopIcons from 'freedesktop-icons';
 
 type KDoToolError = {
 	type: 'error'
@@ -51,8 +52,8 @@ type KdeWindow = {
 	iconUrl: string
 }
 
-function findIconFromDesktopFile(windowClassName : string) : string {
-	return ''; // TODO: this, once I see everything else working
+async function findIcon(windowClassName : string) : Promise<string> {
+	return freedesktopIcons(windowClassName);
 }
 
 class KDoTool {
@@ -62,12 +63,12 @@ class KDoTool {
 			return {
 				type: 'error',
 				statusCode: result.status,
-				stderr: result.stderr.toString()
+				stderr: result.stderr.toString().trim()
 			};
 		}
 		return {
 			type: 'success',
-			value: result.stdout.toString()
+			value: result.stdout.toString().trim()
 		};
 	}
 
@@ -92,32 +93,39 @@ class KDoTool {
 		}
 	}
 
-	static fetchWindows(windowIds : KdeWindowId[]) : KdeWindow[] {
-		return windowIds.flatMap(windowId => {
-			let windowNameResult = KDoTool.runCommand(['getwindowname', windowId]);
-			if (windowNameResult.type === 'error') {
-				console.error(`Error fetching window with id '${windowId}: ${windowNameResult.stderr}`);
-				return [];
-			}
-			let windowName = windowNameResult.value;
-			let windowClassName = Results.getOrDefault(
-				KDoTool.runCommand(['getwindowclassname', windowId]),
-				''
-			);
-			let iconUrl;
-			if (windowClassName) {
-				iconUrl = findIconFromDesktopFile(windowClassName);
-			} 
-			if (!iconUrl) {
-				iconUrl = `xdg:${windowClassName}`;
-			}
-			return [{
-				id: windowId,
-				name: windowName,
-				className: windowClassName,
-				iconUrl
-			}];
-		})
+	static async fetchWindows(windowIds : KdeWindowId[]) : Promise<KdeWindow[]> {
+		return Promise.all(
+			windowIds.map(async (windowId) => {
+				let windowNameResult = KDoTool.runCommand(['getwindowname', windowId]);
+				if (windowNameResult.type === 'error') {
+					console.error(`Error fetching window with id '${windowId}: ${windowNameResult.stderr}`);
+					return [];
+				}
+				let windowName = windowNameResult.value;
+				if (!windowName) {
+					return [];
+				}
+				let windowClassName = Results.getOrDefault(
+					KDoTool.runCommand(['getwindowclassname', windowId]),
+					''
+				);
+				let iconUrl;
+				if (windowClassName) {
+					iconUrl = await findIcon(windowClassName);
+				} 
+				if (!iconUrl) {
+					iconUrl = `xdg:${windowClassName}`;
+				}
+				let window = {
+					id: windowId,
+					name: windowName,
+					className: windowClassName,
+					iconUrl
+				};
+				console.table(window);
+				return [window];
+			})
+		).then(arr => arr.flat());
 	}
 
 	static activateWindow(windowId : KdeWindowId) : void {
@@ -126,22 +134,24 @@ class KDoTool {
 }
 
 
-
 export default function KdeWindowList() {
 	// search is explicitly controlled by state
 	const [searchText, setSearchText] = useState("");
+	const [results, setResults] = useState<KdeWindow[]>([]);
 
-	const searchWindows = (query: string) => {
-		return Results.getOrDefault(
-			Results.mapResult(
-				KDoTool.searchWindowIds(query),
-				KDoTool.fetchWindows
-			),
-			[]
-		);
-	};
-
-	const filteredWindows = useMemo(() => searchWindows(searchText), [searchText]);
+	 useEffect(() => {
+		async function search() {
+			let windowIdsMaybe = KDoTool.searchWindowIds(searchText);
+			if (windowIdsMaybe.type === 'error') {
+				console.error(windowIdsMaybe.stderr);
+				setResults([]);
+				return;
+			}
+			let windowResults = await KDoTool.fetchWindows(windowIdsMaybe.value);
+			setResults(windowResults);
+		};
+		search();
+	}, [searchText]);
 
 	return (
 		<List
@@ -150,7 +160,7 @@ export default function KdeWindowList() {
 			searchBarPlaceholder={"Search open windows..."}
 		>
 			<List.Section title={"Windows"}>
-				{filteredWindows.map((window) => (
+				{results.map((window) => (
 					<List.Item
 						key={window.id}
 						title={window.name}
@@ -161,9 +171,10 @@ export default function KdeWindowList() {
 								<Action
 									title="Activate"
 									icon={Icon.ArrowUp}
-									onAction={() =>
-										KDoTool.activateWindow(window.id)
-									}
+									onAction={async () => {
+										KDoTool.activateWindow(window.id);
+										await closeMainWindow({ clearRootSearch: true });
+									}}
 								/>
 							</ActionPanel>
 						}
