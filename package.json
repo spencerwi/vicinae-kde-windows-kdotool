@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/vicinaehq/vicinae/refs/heads/main/extra/schemas/extension.json",
-  "name": "kde-windows-using-kdotool",
-  "title": "KDE Windows (using kdotool)",
-  "description": "Uses kdotool to list open windows for KDE, since KDE doesn't implement wlroots",
+  "name": "kde-wayland-windows-using-kdotool",
+  "title": "KDE Wayland Windows (using kdotool)",
+  "description": "Uses kdotool to list open windows for KDE Wayland, since Kwin doesn't implement wlroots",
   "categories": [],
   "license": "MIT",
   "author": "spencerwi",
@@ -11,10 +11,10 @@
   "icon": "extension_icon.png",
   "commands": [
     {
-      "name": "kde-windows",
-      "title": "KDE Windows",
-      "subtitle": "List KDE open windows",
-      "description": "Uses kdotool to list open windows for KDE, since KDE doesn't implement wlroots",
+      "name": "kde-wayland-windows",
+      "title": "KDE Wayland Windows",
+      "subtitle": "List KDE Wayland open windows",
+      "description": "Uses kdotool to list open windows for KDE Wayland, since Kwin doesn't implement wlroots",
       "mode": "view"
     }
   ],
